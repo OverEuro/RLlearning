@@ -117,11 +117,37 @@ def IPE1(number):
                     V_new[j,q] = 0
                 if j == 3 and q == 3:
                     V_new[j,q] = 0
-                V_old = V_new.copy()
+        V_old = V_new.copy()
+    return V_new
+
+def IPE2(number):
+    '''
+    in-place algorithm：each new value immediately overwriting the old one, so there
+    is not the V_old. Usually, it converges faster the two-array version.
+    number: the number of iterations
+    '''
+    V_new = np.zeros((4,4)) # new array
+    re = -1 # reward for each movement
+    
+    for i in range(number):
+        for j in range(4):
+            for q in range(4):
+                V_new[j,q] = get_v(V_new,j,q,re)
+                '''
+                The terminal states
+                '''
+                if j == 0 and q == 0:
+                    V_new[j,q] = 0
+                if j == 3 and q == 3:
+                    V_new[j,q] = 0
     return V_new
 
 if __name__ == "__main__":
-    V_final = IPE1(1000)
-    print(V_final)
-    opt_seq = get_opt_policy(V_final, 2, 1) # the starting point is (1,2) in the matrix
-    print(opt_seq)
+    V_final_1 = IPE1(200)
+    V_final_2 = IPE2(200)
+    print(V_final_1)
+    opt_seq_1 = get_opt_policy(V_final_1, 2, 1) # the starting point is (1,2) in the matrix
+    print(opt_seq_1)
+    print(V_final_2)
+    opt_seq_2 = get_opt_policy(V_final_2, 2, 1) # the starting point is (1,2) in the matrix
+    print(opt_seq_2)
