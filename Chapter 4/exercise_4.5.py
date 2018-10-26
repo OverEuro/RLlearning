@@ -2,7 +2,7 @@
 """
 Reinforcement Learning: An Introduction
 
-Example 4.2 (Jack's Car Rental)
+Exercise 4.5 (Jack's Car Rental)
 """
 import time
 import numpy as np
@@ -52,16 +52,26 @@ def bellman(sa,sb,ntrans,V,gamma,ra,pma,rb,pmb,max_n_car,max_n_tran):
     # restrict the action
     ntrans = max(-sb,min(ntrans,sa))
     ntrans = max(-max_n_tran,min(max_n_tran,ntrans))
-    
-    t = -2 * abs(ntrans) # pay $2 for each car
+    if ntrans >= 1:
+        t = -2 * (ntrans - 1) # pay $2 for each car
+    else:
+        t = -2 * abs(ntrans)
     sa_morning = int(sa - ntrans)
     sb_morning = int(sb + ntrans)
     it = np.nditer(V, flags=['multi_index'], order='C')
-    
+    rent_cost = -4 # pay for parking cars for each location
 #    for na in range(max_n_car+1):
 #        # all possible states for location A in the end of day (next state)
 #        for nb in range(max_n_car+1):
 #            # all possible states for location B in the end of day (next state)
+    if (sa_morning > 10 and sb_morning > 10):
+        st = rent_cost * 2 + t
+    if (sa_morning > 10 and sb_morning <= 10):
+        st = rent_cost + t
+    if (sa_morning <= 10 and sb_morning > 10):
+        st = rent_cost + t
+    if (sa_morning <= 10 and sb_morning <= 10):
+        st = t
     while not it.finished:
         na, nb = it.multi_index
         pa = pma[sa_morning,na]
@@ -70,9 +80,10 @@ def bellman(sa,sb,ntrans,V,gamma,ra,pma,rb,pmb,max_n_car,max_n_tran):
         you need to think the transfer cost for all situation, and the cost
         cannot be involved into reward.
         '''
-        t = t + pa*pb * (ra[sa_morning] + rb[sb_morning] + gamma * V[na,nb])
+        st = st + pa*pb * (ra[sa_morning] + rb[sb_morning] + gamma * V[na,nb])
+
         it.iternext()
-    return t
+    return st
 
 def IPE(V,pol,gamma,ra,pma,rb,pmb,max_n_car,max_n_tran):
     # the total number of states
@@ -167,7 +178,7 @@ def main(max_n_car,max_n_tran,lambda_a_ret,lambda_a_req,lambda_b_ret,lambda_b_re
         # policy improvement
         pol, policy_stable = PI(V,pol,gamma,ra,pma,rb,pmb,max_n_car,max_n_tran)
         n_iter += 1
-#        if n_iter > 2:
+#        if n_iter > 10:
 #            break
     return V, pol
 
@@ -184,22 +195,11 @@ if __name__ == "__main__":
     plt.figure()
     plt.imshow(pol, interpolation='nearest')
     plt.colorbar()
-    plt.savefig('opt_policy',dpi=600)
+    plt.savefig('opt_policy_5',dpi=600)
     plt.show()
     
     plt.figure()
     plt.imshow(V, interpolation='nearest')
     plt.colorbar()
-    plt.savefig('opt_Value',dpi=600)
+    plt.savefig('opt_Value_5',dpi=600)
     plt.show()
-    
-    
-        
-        
-        
-        
-        
-        
-        
-        
-        
