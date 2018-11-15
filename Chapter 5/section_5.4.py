@@ -73,7 +73,8 @@ def main(n_episodes,epsilon):
     that is meaningless, so please set n_episodes >= 1e+5 to guarantee each state is visited.
     
     n_states = number of states
-    pol      = initial random policy set. 0 -> stick, 1 -> hit #tensor#
+    pol      = initial random soft policy set. equal probability for stick or hit #tensor#
+    pol_taken= policy taken
     v_action = state-action pair values #tensor#
     Q        = initial Q value or action value #4-dimensional array:
     [SUMhandcards, showingcard, ace_use, action]#
@@ -83,7 +84,8 @@ def main(n_episodes,epsilon):
     '''
     #    n_states = int((21 - 12 + 1) * 13 * 2)
     #pol = np.random.randint(2,size=(10,13,2))
-    pol = np.ones((10,13,2),dtype='int')
+    pol = np.ones((10,13,2,2)) * 0.5
+    pol_taken = np.ones((10,13,2))
     Q = np.zeros([10,13,2,2])
     t_rewSUM = np.zeros([10,13,2,2])
     v_states = np.zeros([10,13,2,2])
@@ -113,7 +115,9 @@ def main(n_episodes,epsilon):
         # accumulate the first state obversed
         state, pv = statefromHand(p,cardshow)
         states_obs[0,:] = state
-        action = pol[state[0]-12, state[1]-1, state[2]]
+        # sample from (0,1) according to the P(0,1|A)
+        action = np.random.choice(2,1, p = pol[state[0]-12, state[1]-1, state[2],:])
+        pol_taken[state[0]-12, state[1]-1, state[2]] = action
         # implement the policy of the player (hit until we have a sum of handvards equals 22 or the action is stick)
         while (action == 1 and pv < 22):
             p = np.hstack((p,deck[0]))
@@ -121,7 +125,8 @@ def main(n_episodes,epsilon):
             state, pv = statefromHand(p,cardshow)
             states_obs = np.vstack((states_obs,state))
             if (pv <= 21):
-                action = pol[state[0]-12, state[1]-1, state[2]]
+                action = np.random.choice(2,1, p = pol[state[0]-12, state[1]-1, state[2],:])
+                pol_taken[state[0]-12, state[1]-1, state[2]] = action
         # implement the fixed policy of the dealer (hit until we have a sum of handvards equals 17)
         while (dv < 17):
             d = np.hstack((d,deck[0]))
@@ -132,32 +137,33 @@ def main(n_episodes,epsilon):
         # accumulate these rewards and number of visiting
         for j in range(np.size(states_obs,0)): # the number of raw of states_obs
             if (states_obs[j,0] >= 12 and states_obs[j,0] <= 21):
-                action = pol[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2]]
+                action = int(pol_taken[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2]])
                 t_rewSUM[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], action] += rew
                 v_states[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], action] += 1
                 Q[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], action] = t_rewSUM[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], action]/ \
                 v_states[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], action]
-                if np.random.rand() > epsilon:
-                    pol[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2]] = np.argmax(Q[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], :])
-                else:
-                    raction = np.random.randint(2) # two actions: 0 or 1 
-                    pol[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2]] = raction
+                action_new = np.argmax(Q[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], :])
+                for q in range(2):
+                    if q == action_new:
+                        pol[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], action_new] = 1 - epsilon + epsilon / 2
+                    else:
+                        pol[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], q] = epsilon / 2
 
-    return pol
+    return pol_taken
 
 if __name__ == "__main__":
-    pol = main(5000000,0.1)
+    pol_taken = main(5000000,0.1)
     
     # ploting
     
     plt.figure()
-    plt.imshow(pol[:,:,0], interpolation='nearest')
+    plt.imshow(pol_taken[:,:,0], interpolation='nearest')
     plt.colorbar()
     plt.savefig('policy_no_use_soft',dpi=600)
     plt.show()
     
     plt.figure()
-    plt.imshow(pol[:,:,1], interpolation='nearest')
+    plt.imshow(pol_taken[:,:,1], interpolation='nearest')
     plt.colorbar()
     plt.savefig('policy_use_soft',dpi=600)
     plt.show()
