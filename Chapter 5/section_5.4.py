@@ -148,22 +148,28 @@ def main(n_episodes,epsilon):
                         pol[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], action_new] = 1 - epsilon + epsilon / 2
                     else:
                         pol[states_obs[j,0]-12, states_obs[j,1]-1, states_obs[j,2], q] = epsilon / 2
-
-    return pol_taken
+    # output greedy policy according to the probability distribution of action set aka. pol[:,:,:,0:1]
+    greedy_pol = np.ones((10,13,2))
+    for i in range(10):
+        for j in range(13):
+            for q in range(2):
+                greedy_pol[i,j,q] = np.argmax(pol[i,j,q,:])
+                
+    return greedy_pol
 
 if __name__ == "__main__":
-    pol_taken = main(5000000,0.1)
+    greedy_pol = main(5000000,0.1)
     
     # ploting
     
     plt.figure()
-    plt.imshow(pol_taken[:,:,0], interpolation='nearest')
+    plt.imshow(greedy_pol[:,:,0], interpolation='nearest')
     plt.colorbar()
     plt.savefig('policy_no_use_soft',dpi=600)
     plt.show()
     
     plt.figure()
-    plt.imshow(pol_taken[:,:,1], interpolation='nearest')
+    plt.imshow(greedy_pol[:,:,1], interpolation='nearest')
     plt.colorbar()
     plt.savefig('policy_use_soft',dpi=600)
     plt.show()
